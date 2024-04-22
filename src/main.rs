@@ -30,6 +30,10 @@ struct Blob {
     velocity: Vec2,
 }
 
+// TODO: make the consts input parameters
+// TODO: optimise bad code
+// TODO: use iters and maps instead of for loops
+
 fn main() -> Result<()> {
     let (mut x,mut y) = get_dimensions();
     let mut blobs: Vec<Blob> = gen_blobs(&x, &y);
@@ -96,7 +100,7 @@ fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
 
     let mut rng = rand::thread_rng();
     let mut blobs: Vec<Blob> = vec![];
-    for _i in 0..initial_blobs {
+    for _ in 0..initial_blobs {
         let mut temp: Blob = Default::default();
         temp.x = rng.gen::<f32>() * *x as f32;
         temp.y = rng.gen::<f32>() * *y as f32;
@@ -138,4 +142,3 @@ fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
     blobs
 }
 
-// make thing a vec follow pandaroses things
