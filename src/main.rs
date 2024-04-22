@@ -18,8 +18,8 @@ use std::io::{stdout, Result};
 const BASE_CHAR: char = ' ';
 const FILL_CHAR: char = '■';
 const THRESHOLD: f32 = 0.5;
-const DENSITY: f32 = 300.0;
-const VELOCITY: f32 = 2.0;
+const DENSITY: f32 = 400.0;
+const VELOCITY: f32 = 0.5;
 
 type Grid = Vec<Vec<char>>;
 #[derive(Default)]
@@ -39,7 +39,7 @@ fn main() -> Result<()> {
     let mut text;
 
     loop {
-        blobs = transform(blobs);
+        blobs = transform(blobs, x, y);
         text = draw(&blobs, &x, &y);
         terminal.draw(|frame| {
 
@@ -123,8 +123,13 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
     out_grid
 }
 
-fn transform(mut blobs: Vec<Blob>) -> Vec<Blob> {
+fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
     for i in 0..blobs.len() {
+        if blobs[i].x <= 0.0 || blobs[i].x >=x {
+            blobs[i].velocity.x *= -1.0;
+        } else if blobs[i].y <= 0.0 || blobs[i].y >= y {
+            blobs[i].velocity.y *= -1.0;
+        }
         blobs[i].x += blobs[i].velocity.x;
         blobs[i].y += blobs[i].velocity.y;
     }
