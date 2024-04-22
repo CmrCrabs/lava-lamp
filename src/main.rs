@@ -12,34 +12,37 @@ use ratatui::{
 };
 use termion::terminal_size;
 use rand::prelude::*;
+use glam::Vec2;
 use std::io::{stdout, Result};
 
 const BASE_CHAR: char = ' ';
 const FILL_CHAR: char = '■';
-const INITIAL_BLOBS: usize = 12;
 const THRESHOLD: f32 = 0.5;
-
+const DENSITY: f32 = 300.0;
+const VELOCITY: f32 = 2.0;
 
 type Grid = Vec<Vec<char>>;
 #[derive(Default)]
 struct Blob {
     x: f32,
     y: f32,
-    velocity: f32,
+    velocity: Vec2,
 }
 
 fn main() -> Result<()> {
     let (x,y) = get_dimensions();
-    let mut blobs: [Blob; INITIAL_BLOBS] = gen_blobs(x, y);
+    let mut blobs: Vec<Blob> = gen_blobs(&x, &y);
 
     stdout().execute(EnterAlternateScreen)?;
     enable_raw_mode()?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    terminal.clear()?;
+    let mut text;
 
     loop {
-        let text = draw(&blobs, x, y);
+        blobs = transform(blobs);
+        text = draw(&blobs, &x, &y);
         terminal.draw(|frame| {
+
             let area = frame.size();
             frame.render_widget(
                 Paragraph::new(text)
@@ -65,7 +68,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn draw(blobs: &[Blob; INITIAL_BLOBS], x: f32, y: f32) -> String {
+fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) -> String {
     let mut grid: Grid = gen_grid(x, y);
     grid = metaballise(grid, blobs);
 
@@ -82,21 +85,26 @@ fn get_dimensions() -> (f32, f32) {
     (x as f32, y as f32)
 }
 
-fn gen_grid(x: f32, y: f32) -> Grid {
-    vec![vec![BASE_CHAR; x as usize]; y as usize]
+fn gen_grid(x: &f32, y: &f32) -> Grid {
+    vec![vec![BASE_CHAR; *x as usize]; *y as usize]
 }
 
-fn gen_blobs(x: f32, y: f32) -> [Blob; INITIAL_BLOBS] {
+fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
+    let initial_blobs: u32 = ((x * y) / DENSITY) as u32;
+
     let mut rng = rand::thread_rng();
-    let mut blobs: [Blob; INITIAL_BLOBS] = Default::default();
-    for i in 0..blobs.len() {
-        blobs[i].x = rng.gen::<f32>() * x as f32;
-        blobs[i].y = rng.gen::<f32>() * y as f32;
+    let mut blobs: Vec<Blob> = vec![];
+    for _i in 0..initial_blobs {
+        let mut temp: Blob = Default::default();
+        temp.x = rng.gen::<f32>() * *x as f32;
+        temp.y = rng.gen::<f32>() * *y as f32;
+        temp.velocity = Vec2::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)) * VELOCITY;
+        blobs.push(temp);
     }
     blobs
 }
 
-fn metaballise(grid: Grid, blobs: &[Blob; INITIAL_BLOBS]) -> Grid {
+fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
     let mut out_grid = grid.clone();
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
@@ -115,6 +123,12 @@ fn metaballise(grid: Grid, blobs: &[Blob; INITIAL_BLOBS]) -> Grid {
     out_grid
 }
 
-fn heat_lamp(blobs: [(f32, f32); INITIAL_BLOBS]) -> [(f32, f32); INITIAL_BLOBS] {
-   blobs 
+fn transform(mut blobs: Vec<Blob>) -> Vec<Blob> {
+    for i in 0..blobs.len() {
+        blobs[i].x += blobs[i].velocity.x;
+        blobs[i].y += blobs[i].velocity.y;
+    }
+    blobs
 }
+
+// make thing a vec follow pandaroses things
