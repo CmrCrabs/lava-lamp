@@ -22,6 +22,7 @@ const DENSITY: f32 = 400.0;
 const VELOCITY: f32 = 0.5;
 
 type Grid = Vec<Vec<char>>;
+
 #[derive(Default)]
 struct Blob {
     x: f32,
@@ -30,7 +31,7 @@ struct Blob {
 }
 
 fn main() -> Result<()> {
-    let (x,y) = get_dimensions();
+    let (mut x,mut y) = get_dimensions();
     let mut blobs: Vec<Blob> = gen_blobs(&x, &y);
 
     stdout().execute(EnterAlternateScreen)?;
@@ -39,6 +40,7 @@ fn main() -> Result<()> {
     let mut text;
 
     loop {
+        (x,y) = get_dimensions();
         blobs = transform(blobs, x, y);
         text = draw(&blobs, &x, &y);
         terminal.draw(|frame| {
