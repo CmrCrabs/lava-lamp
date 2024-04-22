@@ -19,6 +19,8 @@ const FILL_CHAR: char = '■';
 const INITIAL_BLOBS: usize = 12;
 const THRESHOLD: f32 = 0.5;
 
+
+type Grid = Vec<Vec<char>>;
 #[derive(Default)]
 struct Blob {
     x: f32,
@@ -64,7 +66,7 @@ fn main() -> Result<()> {
 }
 
 fn draw(blobs: &[Blob; INITIAL_BLOBS], x: f32, y: f32) -> String {
-    let mut grid: Vec<Vec<char>> = gen_grid(x, y);
+    let mut grid: Grid = gen_grid(x, y);
     grid = metaballise(grid, blobs);
 
     let output_grid = grid.into_iter()
@@ -80,9 +82,8 @@ fn get_dimensions() -> (f32, f32) {
     (x as f32, y as f32)
 }
 
-fn gen_grid(x: f32, y: f32) -> Vec<Vec<char>> {
-    let map: Vec<Vec<char>> = vec![vec![BASE_CHAR; x as usize]; y as usize];
-    map
+fn gen_grid(x: f32, y: f32) -> Grid {
+    vec![vec![BASE_CHAR; x as usize]; y as usize]
 }
 
 fn gen_blobs(x: f32, y: f32) -> [Blob; INITIAL_BLOBS] {
@@ -95,7 +96,7 @@ fn gen_blobs(x: f32, y: f32) -> [Blob; INITIAL_BLOBS] {
     blobs
 }
 
-fn metaballise(grid: Vec<Vec<char>>, blobs: &[Blob; INITIAL_BLOBS]) -> Vec<Vec<char>> {
+fn metaballise(grid: Grid, blobs: &[Blob; INITIAL_BLOBS]) -> Grid {
     let mut out_grid = grid.clone();
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
