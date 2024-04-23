@@ -20,7 +20,7 @@ const BASE_CHAR: char = ' ';
 const FILL_CHAR: char = '■';
 
 const THRESHOLD: f32 = 0.5;
-const DENSITY: f32 = 400.0;
+const DENSITY: f32 = 200.0;
 const VELOCITY: f32 = 0.5;
 const GRAVITY: f32 = 1.1;
 const HEAT: f32 = 1.0;
@@ -33,14 +33,17 @@ struct Blob {
     x: f32,
     y: f32,
     velocity: Vec2,
-    mass: f32,
 }
 
 // TODO: make the consts input parameters
-// TODO: optimise bad code
-// TODO: add a clock? its like a screensaver
+// gravity
+// heat
+// fluid resistance
+// collisions
+// mass per blob (value for centre)
+// scale collisions based on per blob mass
 // TODO: colors per blob!?
-// TODO: actual lava lamp functionality, scale velocity based on distance from "heat lamp"
+// TODO: working edge clamping / edge detection
 
 fn main() -> Result<()> {
     let (mut x,mut y) = get_dimensions();
@@ -61,7 +64,7 @@ fn main() -> Result<()> {
             frame.render_widget(
                 Paragraph::new(text)
                     .white(),
-                    //.on_black(),
+                    //.on_white(),
                 area,
             );
         })?;
