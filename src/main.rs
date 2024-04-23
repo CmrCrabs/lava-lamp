@@ -15,11 +15,16 @@ use rand::prelude::*;
 use glam::Vec2;
 use std::io::{stdout, Result};
 
+const FRAME_DELAY: u64 = 16;
 const BASE_CHAR: char = ' ';
 const FILL_CHAR: char = '■';
+
 const THRESHOLD: f32 = 0.5;
 const DENSITY: f32 = 400.0;
 const VELOCITY: f32 = 0.5;
+const GRAVITY: f32 = 1.1;
+const HEAT: f32 = 1.0;
+const RESISTANCE: f32 = 0.8;
 
 type Grid = Vec<Vec<char>>;
 
@@ -28,11 +33,14 @@ struct Blob {
     x: f32,
     y: f32,
     velocity: Vec2,
+    mass: f32,
 }
 
 // TODO: make the consts input parameters
 // TODO: optimise bad code
-// TODO: use iters and maps instead of for loops
+// TODO: add a clock? its like a screensaver
+// TODO: colors per blob!?
+// TODO: actual lava lamp functionality, scale velocity based on distance from "heat lamp"
 
 fn main() -> Result<()> {
     let (mut x,mut y) = get_dimensions();
@@ -58,7 +66,7 @@ fn main() -> Result<()> {
             );
         })?;
 
-        if event::poll(std::time::Duration::from_millis(16))? {
+        if event::poll(std::time::Duration::from_millis(FRAME_DELAY))? {
             if let event::Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press
                     && key.code == KeyCode::Char('q')
@@ -80,6 +88,7 @@ fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) -> String {
 
     let output_grid = grid.into_iter()
         .map(|row| row.into_iter().collect::<String>())
+        .rev()
         .collect::<Vec<String>>()
         .join("\n");
 
@@ -130,14 +139,19 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
 }
 
 fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
-    for i in 0..blobs.len() {
-        if blobs[i].x <= 0.0 || blobs[i].x >=x {
-            blobs[i].velocity.x *= -1.0;
-        } else if blobs[i].y <= 0.0 || blobs[i].y >= y {
-            blobs[i].velocity.y *= -1.0;
+    for blob in &mut blobs {
+        let vertical_velocity = Vec2::new(0.0, 0.0);
+        let resultant_velocity = blob.velocity + vertical_velocity;
+
+        if blob.x <= 0.0 || blob.x >=x {
+            blob.velocity.x *= -1.0;
+        } 
+        else if blob.y <= 0.0 || blob.y >= y {
+            blob.velocity.y *= -1.0;
         }
-        blobs[i].x += blobs[i].velocity.x;
-        blobs[i].y += blobs[i].velocity.y;
+        blob.x +=  resultant_velocity.x;
+        blob.y += resultant_velocity.y;
+
     }
     blobs
 }
