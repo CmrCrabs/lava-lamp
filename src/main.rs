@@ -20,9 +20,10 @@ const BASE_CHAR: char = ' ';
 const FILL_CHAR: char = '■';
 
 const THRESHOLD: f32 = 0.5;
-const DENSITY: f32 = 200.0;
+const DENSITY: f32 = 1.25;
+
 const VELOCITY: f32 = 0.5;
-const GRAVITY: f32 = 1.1;
+const GRAVITY: f32 = 1.0;
 const HEAT: f32 = 1.0;
 const RESISTANCE: f32 = 0.8;
 
@@ -108,7 +109,7 @@ fn gen_grid(x: &f32, y: &f32) -> Grid {
 }
 
 fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
-    let initial_blobs: u32 = ((x * y) / DENSITY) as u32;
+    let initial_blobs: u32 = ((1.0 / DENSITY * x * y).powf(1.0 / 3.0)) as u32;
 
     let mut rng = rand::thread_rng();
     let mut blobs: Vec<Blob> = vec![];
