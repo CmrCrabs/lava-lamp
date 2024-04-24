@@ -22,7 +22,7 @@ const FILL_CHAR: char = '■';
 const THRESHOLD: f32 = 0.5;
 const DENSITY: f32 = 1.25;
 
-const VELOCITY: f32 = 0.5;
+const VELOCITY: f32 = 2.5; // clamping breaks at velocities greater than 4.5
 const GRAVITY: f32 = 1.0;
 const HEAT: f32 = 1.0;
 const RESISTANCE: f32 = 0.8;
@@ -36,15 +36,12 @@ struct Blob {
     velocity: Vec2,
 }
 
-// TODO: make the consts input parameters
-// gravity
-// heat
-// fluid resistance
-// collisions
-// mass per blob (value for centre)
-// scale collisions based on per blob mass
-// TODO: colors per blob!?
 // TODO: working edge clamping / edge detection
+// TODO: gravity
+// TODO: heat
+// TODO: fluid resistance
+// TODO: make the consts input parameters
+// TODO: colors per blob!?
 
 fn main() -> Result<()> {
     let (mut x,mut y) = get_dimensions();
@@ -63,8 +60,8 @@ fn main() -> Result<()> {
 
             let area = frame.size();
             frame.render_widget(
-                Paragraph::new(text)
-                    .white(),
+                Paragraph::new(text),
+                    //.white(),
                     //.on_white(),
                 area,
             );
@@ -109,7 +106,8 @@ fn gen_grid(x: &f32, y: &f32) -> Grid {
 }
 
 fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
-    let initial_blobs: u32 = ((1.0 / DENSITY * x * y).powf(1.0 / 3.0)) as u32;
+    let initial_blobs: u32 = (((x * y) / DENSITY).powf(1.0 / 3.0)) as u32;
+    //let initial_blobs: u32 = 1;
 
     let mut rng = rand::thread_rng();
     let mut blobs: Vec<Blob> = vec![];
@@ -147,10 +145,10 @@ fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
         let vertical_velocity = Vec2::new(0.0, 0.0);
         let resultant_velocity = blob.velocity + vertical_velocity;
 
-        if blob.x <= 0.0 || blob.x >=x {
+        if (blob.x + resultant_velocity.x) <= 0.0 || (blob.x + resultant_velocity.x) >=x {
             blob.velocity.x *= -1.0;
         } 
-        else if blob.y <= 0.0 || blob.y >= y {
+        else if (blob.y + resultant_velocity.y) <= 0.0 || (blob.y + resultant_velocity.y) >= y {
             blob.velocity.y *= -1.0;
         }
         blob.x +=  resultant_velocity.x;
@@ -159,4 +157,5 @@ fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
     }
     blobs
 }
+
 
