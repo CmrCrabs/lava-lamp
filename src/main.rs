@@ -38,7 +38,6 @@ struct Blob {
 // TODO: random chance for blob to drop by ignoring heat?
 // TODO: make the consts input parameters
 // TODO: colors per blob!?
-//TODO: background color
 
 fn main() -> Result<()> {
     let (mut x,mut y) = get_dimensions();
@@ -69,7 +68,7 @@ fn main() -> Result<()> {
 }
 
 fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) {
-    let mut grid: Grid = gen_grid(x, y);
+    let mut grid: Grid = vec![vec![false; *x as usize]; *y as usize];
     grid = metaballise(grid, blobs);
 
     for row in grid {
@@ -135,8 +134,4 @@ fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
 fn get_dimensions() -> (f32, f32) {
     let (x, y) = size().unwrap();
     (x as f32, y as f32)
-}
-
-fn gen_grid(x: &f32, y: &f32) -> Grid {
-    vec![vec![false; *x as usize]; *y as usize]
 }
