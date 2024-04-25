@@ -3,6 +3,7 @@ use crossterm::{
     terminal::{
         disable_raw_mode, enable_raw_mode, EnterAlternateScreen,
         LeaveAlternateScreen,
+        size,
     },
     ExecutableCommand,
 };
@@ -10,7 +11,6 @@ use ratatui::{
     prelude::{CrosstermBackend, Stylize, Terminal},
     widgets::Paragraph,
 };
-use termion::terminal_size;
 use rand::prelude::*;
 use glam::Vec2;
 use std::io::{stdout, Result};
@@ -31,8 +31,7 @@ type Grid = Vec<Vec<char>>;
 
 #[derive(Default)]
 struct Blob {
-    x: f32,
-    y: f32,
+    coord: Vec2,
     velocity: Vec2,
 }
 
@@ -106,10 +105,10 @@ fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
     let mut rng = rand::thread_rng();
     let mut blobs: Vec<Blob> = vec![];
     for _ in 0..initial_blobs {
-        let mut temp: Blob = Default::default();
-        temp.x = rng.gen::<f32>() * *x as f32;
-        temp.y = rng.gen::<f32>() * *y as f32;
-        temp.velocity = Vec2::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)) * VELOCITY;
+        let mut temp = Blob {
+            coord: Vec2::new(rng.gen::<f32>() * *x as f32,rng.gen::<f32>() * *y as f32),
+            velocity: Vec2::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)) * VELOCITY,
+        };
         blobs.push(temp);
     }
     blobs
@@ -122,8 +121,8 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
             let mut value: f32 = 0.0; 
             for blob in blobs {
                 value += (
-                    (j as f32 - blob.x).powf(2.0) + 
-                    (i as f32 - blob.y).powf(2.0)
+                    (j as f32 - blob.coord.x).powf(2.0) + 
+                    (i as f32 - blob.coord.y).powf(2.0)
                 ).sqrt().recip();
             } 
             if value >= THRESHOLD {
@@ -139,21 +138,19 @@ fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
         let vertical_velocity = Vec2::new(0.0, 0.0);
         let resultant_velocity = blob.velocity + vertical_velocity;
 
-        if (blob.x + resultant_velocity.x) <= 0.0 || (blob.x + resultant_velocity.x) >=x {
+        if (blob.coord.x + resultant_velocity.x) <= 0.0 || (blob.coord.x + resultant_velocity.x) >=x {
             blob.velocity.x *= -1.0;
         } 
-        else if (blob.y + resultant_velocity.y) <= 0.0 || (blob.y + resultant_velocity.y) >= y {
+        else if (blob.coord.y + resultant_velocity.y) <= 0.0 || (blob.coord.y + resultant_velocity.y) >= y {
             blob.velocity.y *= -1.0;
         }
-        blob.x +=  resultant_velocity.x;
-        blob.y += resultant_velocity.y;
-
+        blob.coord +=  resultant_velocity;
     }
     blobs
 }
 
 fn get_dimensions() -> (f32, f32) {
-    let (x, y) = terminal_size().unwrap();
+    let (x, y) = size().unwrap();
     (x as f32, y as f32)
 }
 
