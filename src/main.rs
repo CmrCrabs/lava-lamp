@@ -75,16 +75,11 @@ fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) {
     for row in grid {
         for cell in row {
             match cell {
-                true => {
-                    print!("{} ",SetBackgroundColor(Color::White));
-                },
-                false => {
-                    print!("{} ", SetBackgroundColor(Color::Reset));
-                }
+                true => print!("{} ",SetBackgroundColor(Color::White)),
+                false => print!("{} ", SetBackgroundColor(Color::Reset)),
             }
         }
     }
-
 }
 
 fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
