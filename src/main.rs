@@ -20,9 +20,9 @@ const BASE_CHAR: char = ' ';
 const FILL_CHAR: char = '■';
 
 const THRESHOLD: f32 = 0.5;
-const DENSITY: f32 = 1.25;
+const DENSITY: f32 = 1.05;
 
-const VELOCITY: f32 = 2.5; // clamping breaks at velocities greater than 4.5
+const VELOCITY: f32 = 1.5; // clamping breaks at velocities greater than 4.5
 const GRAVITY: f32 = 1.0;
 const HEAT: f32 = 1.0;
 const RESISTANCE: f32 = 0.8;
@@ -40,6 +40,9 @@ struct Blob {
 // TODO: gravity
 // TODO: heat
 // TODO: fluid resistance
+// TODO: heat + fluid resistance > gravity
+// TODO: heat value fluctuates slightly?
+// TODO: random chance for blob to drop by ignoring heat?
 // TODO: make the consts input parameters
 // TODO: colors per blob!?
 
@@ -60,8 +63,8 @@ fn main() -> Result<()> {
 
             let area = frame.size();
             frame.render_widget(
-                Paragraph::new(text),
-                    //.white(),
+                Paragraph::new(text)
+                    .white(),
                     //.on_white(),
                 area,
             );
@@ -94,15 +97,6 @@ fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) -> String {
         .join("\n");
 
     output_grid
-}
-
-fn get_dimensions() -> (f32, f32) {
-    let (x, y) = terminal_size().unwrap();
-    (x as f32, y as f32)
-}
-
-fn gen_grid(x: &f32, y: &f32) -> Grid {
-    vec![vec![BASE_CHAR; *x as usize]; *y as usize]
 }
 
 fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
@@ -158,4 +152,11 @@ fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
     blobs
 }
 
+fn get_dimensions() -> (f32, f32) {
+    let (x, y) = terminal_size().unwrap();
+    (x as f32, y as f32)
+}
 
+fn gen_grid(x: &f32, y: &f32) -> Grid {
+    vec![vec![BASE_CHAR; *x as usize]; *y as usize]
+}
