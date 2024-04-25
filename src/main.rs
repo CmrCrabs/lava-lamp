@@ -2,6 +2,7 @@ use crossterm::{
     terminal::{size, enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     event::{poll, read, Event, KeyCode, KeyEventKind},
     cursor::{MoveTo, Hide, Show},
+    style::{SetBackgroundColor, Color},
     execute,
 };
 use rand::prelude::*;
@@ -16,11 +17,11 @@ const THRESHOLD: f32 = 0.5;
 const DENSITY: f32 = 1.05;
 
 const VELOCITY: f32 = 1.5; // clamping breaks at velocities greater than 4.5
-const GRAVITY: f32 = 1.0;
-const HEAT: f32 = 1.0;
-const RESISTANCE: f32 = 0.8;
+const _GRAVITY: f32 = 1.0;
+const _HEAT: f32 = 1.0;
+const _RESISTANCE: f32 = 0.8;
 
-type Grid = Vec<Vec<char>>;
+type Grid = Vec<Vec<bool>>;
 
 #[derive(Default)]
 struct Blob {
@@ -47,9 +48,8 @@ fn main() -> Result<()> {
     loop {
         (x,y) = get_dimensions();
         blobs = transform(blobs, x, y);
-        let text = draw(&blobs, &x, &y);
         print!("{}{}", MoveTo(0,0), Hide);
-        print!("{}", text);
+        draw(&blobs, &x, &y);
 
         if poll(std::time::Duration::from_millis(FRAME_DELAY))? { 
             if let Event::Key(key) = read()? {
@@ -68,17 +68,23 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) -> String {
+fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) {
     let mut grid: Grid = gen_grid(x, y);
     grid = metaballise(grid, blobs);
 
-    let output_grid = grid.into_iter()
-        .map(|row| row.into_iter().collect::<String>())
-        .rev()
-        .collect::<Vec<String>>()
-        .join("");
+    for row in grid {
+        for cell in row {
+            match cell {
+                true => {
+                    print!("{} ",SetBackgroundColor(Color::White));
+                },
+                false => {
+                    print!("{} ", SetBackgroundColor(Color::Reset));
+                }
+            }
+        }
+    }
 
-    output_grid
 }
 
 fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
@@ -87,7 +93,7 @@ fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
     let mut rng = rand::thread_rng();
     let mut blobs: Vec<Blob> = vec![];
     for _ in 0..initial_blobs {
-        let mut temp = Blob {
+        let temp = Blob {
             coord: Vec2::new(rng.gen::<f32>() * *x as f32,rng.gen::<f32>() * *y as f32),
             velocity: Vec2::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)) * VELOCITY,
         };
@@ -108,7 +114,7 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
                 ).sqrt().recip();
             } 
             if value >= THRESHOLD {
-                out_grid[i][j] = FILL_CHAR;
+                out_grid[i][j] = true;
             }
         }
     }
@@ -137,5 +143,5 @@ fn get_dimensions() -> (f32, f32) {
 }
 
 fn gen_grid(x: &f32, y: &f32) -> Grid {
-    vec![vec![BASE_CHAR; *x as usize]; *y as usize]
+    vec![vec![false; *x as usize]; *y as usize]
 }
