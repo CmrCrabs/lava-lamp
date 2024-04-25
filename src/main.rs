@@ -1,15 +1,8 @@
 use crossterm::{
-    event::{self, KeyCode, KeyEventKind},
-    terminal::{
-        disable_raw_mode, enable_raw_mode, EnterAlternateScreen,
-        LeaveAlternateScreen,
-        size,
-    },
-    ExecutableCommand,
-};
-use ratatui::{
-    prelude::{CrosstermBackend, Stylize, Terminal},
-    widgets::Paragraph,
+    terminal::{size, enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    event::{poll, read, Event, KeyCode, KeyEventKind},
+    cursor::{MoveTo, Hide, Show},
+    execute,
 };
 use rand::prelude::*;
 use glam::Vec2;
@@ -44,33 +37,22 @@ struct Blob {
 // TODO: random chance for blob to drop by ignoring heat?
 // TODO: make the consts input parameters
 // TODO: colors per blob!?
+//TODO: background color
 
 fn main() -> Result<()> {
     let (mut x,mut y) = get_dimensions();
     let mut blobs: Vec<Blob> = gen_blobs(&x, &y);
-
-    stdout().execute(EnterAlternateScreen)?;
     enable_raw_mode()?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    let mut text;
-
+    execute!(stdout(), EnterAlternateScreen)?;
     loop {
         (x,y) = get_dimensions();
         blobs = transform(blobs, x, y);
-        text = draw(&blobs, &x, &y);
-        terminal.draw(|frame| {
+        let text = draw(&blobs, &x, &y);
+        print!("{}{}", MoveTo(0,0), Hide);
+        print!("{}", text);
 
-            let area = frame.size();
-            frame.render_widget(
-                Paragraph::new(text)
-                    .white(),
-                    //.on_white(),
-                area,
-            );
-        })?;
-
-        if event::poll(std::time::Duration::from_millis(FRAME_DELAY))? {
-            if let event::Event::Key(key) = event::read()? {
+        if poll(std::time::Duration::from_millis(FRAME_DELAY))? { 
+            if let Event::Key(key) = read()? {
                 if key.kind == KeyEventKind::Press
                     && key.code == KeyCode::Char('q')
                 {
@@ -78,9 +60,10 @@ fn main() -> Result<()> {
                 }
             }
         }
-    } 
 
-    stdout().execute(LeaveAlternateScreen)?;
+    }
+    execute!(stdout(), LeaveAlternateScreen)?;
+    print!("{}", Show);
     disable_raw_mode()?;
     Ok(())
 }
@@ -93,14 +76,13 @@ fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) -> String {
         .map(|row| row.into_iter().collect::<String>())
         .rev()
         .collect::<Vec<String>>()
-        .join("\n");
+        .join("");
 
     output_grid
 }
 
 fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
     let initial_blobs: u32 = (((x * y) / DENSITY).powf(1.0 / 3.0)) as u32;
-    //let initial_blobs: u32 = 1;
 
     let mut rng = rand::thread_rng();
     let mut blobs: Vec<Blob> = vec![];
