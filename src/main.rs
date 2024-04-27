@@ -12,7 +12,7 @@ use glam::Vec2;
 
 const FRAME_DELAY: u64 = 16;
 const THRESHOLD: f32 = 0.5;
-const DENSITY: f32 = 1.05;
+const DENSITY: f32 = 1.25;
 
 const VELOCITY: f32 = 2.0; // clamping breaks at velocities greater than 4.5
 const _GRAVITY: f32 = 1.0;
@@ -71,7 +71,7 @@ fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) {
     let mut grid: Grid = vec![vec![false; *x as usize]; *y as usize];
     grid = metaballise(grid, blobs);
 
-    for row in grid {
+    for row in grid.into_iter().rev() {
         for cell in row {
             print!("{} ", SetBackgroundColor(if cell {Color::White} else {Color::Reset}));
         }
@@ -86,7 +86,7 @@ fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
     for _ in 0..initial_blobs {
         blobs.push( Blob {
             coord: Vec2::new(rng.gen::<f32>() * *x as f32,rng.gen::<f32>() * *y as f32),
-            velocity: Vec2::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)) * VELOCITY,
+            velocity: Vec2::new(rng.gen_range(-1.1..1.1), rng.gen_range(-1.1..1.1)) * VELOCITY,
         });
     }
     blobs
@@ -113,14 +113,21 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
 
 fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
     for blob in &mut blobs {
-        let vertical_velocity = Vec2::new(0.0, 0.0);
-        let resultant_velocity = blob.velocity + vertical_velocity;
+        let mut rng = rand::thread_rng();
+        let vertical_velocity = Vec2::new(
+            0.0,
+            //VELOCITY * ((_BASE_HEAT * rng.gen_range(0.0..1.0) * _HEAT_FLUCT) + _RESISTANCE - _GRAVITY)
+            0.0,
+        );
+        let mut resultant_velocity = blob.velocity + vertical_velocity;
 
         if (blob.coord.x + resultant_velocity.x) <= 0.0 || (blob.coord.x + resultant_velocity.x) >=x {
             blob.velocity.x *= -1.0;
+            resultant_velocity.x *= -1.0;
         } 
-        else if (blob.coord.y + resultant_velocity.y) <= 0.0 || (blob.coord.y + resultant_velocity.y) >= y {
+        if (blob.coord.y + resultant_velocity.y) <= 0.0 || (blob.coord.y + resultant_velocity.y) >= y {
             blob.velocity.y *= -1.0;
+            resultant_velocity.y *= -1.0;
         }
         blob.coord +=  resultant_velocity;
     }
