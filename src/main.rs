@@ -5,20 +5,19 @@ use crossterm::{
     style::{SetBackgroundColor, Color},
     execute,
 };
-use rand::prelude::*;
-use glam::Vec2;
 use std::io::{stdout, Result};
 
-const FRAME_DELAY: u64 = 16;
-const BASE_CHAR: char = ' ';
-const FILL_CHAR: char = '■';
+use rand::prelude::*;
+use glam::Vec2;
 
+const FRAME_DELAY: u64 = 16;
 const THRESHOLD: f32 = 0.5;
 const DENSITY: f32 = 1.05;
 
-const VELOCITY: f32 = 1.5; // clamping breaks at velocities greater than 4.5
+const VELOCITY: f32 = 2.0; // clamping breaks at velocities greater than 4.5
 const _GRAVITY: f32 = 1.0;
-const _HEAT: f32 = 1.0;
+const _BASE_HEAT: f32 = 1.0;
+const _HEAT_FLUCT: f32 = 1.0;
 const _RESISTANCE: f32 = 0.8;
 
 type Grid = Vec<Vec<bool>>;
@@ -29,7 +28,6 @@ struct Blob {
     velocity: Vec2,
 }
 
-// TODO: working edge clamping / edge detection
 // TODO: gravity
 // TODO: heat
 // TODO: fluid resistance
@@ -38,10 +36,13 @@ struct Blob {
 // TODO: random chance for blob to drop by ignoring heat?
 // TODO: make the consts input parameters
 // TODO: colors per blob!?
+// TODO: vary threshold by velocity to change it
+// TODO: Blob shading?
 
 fn main() -> Result<()> {
     let (mut x,mut y) = get_dimensions();
     let mut blobs: Vec<Blob> = gen_blobs(&x, &y);
+
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen)?;
     loop {
@@ -59,7 +60,6 @@ fn main() -> Result<()> {
                 }
             }
         }
-
     }
     execute!(stdout(), LeaveAlternateScreen)?;
     print!("{}", Show);
@@ -73,10 +73,7 @@ fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) {
 
     for row in grid {
         for cell in row {
-            match cell {
-                true => print!("{} ",SetBackgroundColor(Color::White)),
-                false => print!("{} ", SetBackgroundColor(Color::Reset)),
-            }
+            print!("{} ", SetBackgroundColor(if cell {Color::White} else {Color::Reset}));
         }
     }
 }
@@ -87,11 +84,10 @@ fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
     let mut rng = rand::thread_rng();
     let mut blobs: Vec<Blob> = vec![];
     for _ in 0..initial_blobs {
-        let temp = Blob {
+        blobs.push( Blob {
             coord: Vec2::new(rng.gen::<f32>() * *x as f32,rng.gen::<f32>() * *y as f32),
             velocity: Vec2::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)) * VELOCITY,
-        };
-        blobs.push(temp);
+        });
     }
     blobs
 }
