@@ -10,15 +10,14 @@ use std::io::{stdout, Result};
 use rand::prelude::*;
 use glam::Vec2;
 
-const FRAME_DELAY: u64 = 16;
+const FRAME_DELAY: u64 = 5;
 const THRESHOLD: f32 = 0.5;
-const DENSITY: f32 = 1.25;
+const DENSITY: f32 = 1.05;
 
-const VELOCITY: f32 = 2.0; // clamping breaks at velocities greater than 4.5
-const _GRAVITY: f32 = 1.0;
-const _BASE_HEAT: f32 = 1.0;
-const _HEAT_FLUCT: f32 = 1.0;
-const _RESISTANCE: f32 = 0.8;
+const VELOCITY: f32 = 0.2; // clamping breaks at velocities greater than 4.5
+const BASE_HEAT: f32 = 1.0;
+const FALLING_CHANCE: f32 = 0.02;
+const HEAT_FLUCT: f32 = 1.0;
 
 type Grid = Vec<Vec<bool>>;
 
@@ -26,14 +25,11 @@ type Grid = Vec<Vec<bool>>;
 struct Blob {
     coord: Vec2,
     velocity: Vec2,
+    falling: bool,
 }
 
-// TODO: gravity
-// TODO: heat
-// TODO: fluid resistance
-// TODO: heat + fluid resistance > gravity
-// TODO: heat value fluctuates slightly?
-// TODO: random chance for blob to drop by ignoring heat?
+// TODO: smooth the transition from falling to not falling
+// TOOD: make it so can adjust settle height
 // TODO: make the consts input parameters
 // TODO: colors per blob!?
 // TODO: vary threshold by velocity to change it
@@ -86,7 +82,8 @@ fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
     for _ in 0..initial_blobs {
         blobs.push( Blob {
             coord: Vec2::new(rng.gen::<f32>() * *x as f32,rng.gen::<f32>() * *y as f32),
-            velocity: Vec2::new(rng.gen_range(-1.1..1.1), rng.gen_range(-1.1..1.1)) * VELOCITY,
+            velocity: Vec2::new(rng.gen_range(-0.7..0.7), rng.gen_range(-0.3..0.3)) * VELOCITY,
+            falling: false,
         });
     }
     blobs
@@ -116,20 +113,36 @@ fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
         let mut rng = rand::thread_rng();
         let vertical_velocity = Vec2::new(
             0.0,
-            //VELOCITY * ((_BASE_HEAT * rng.gen_range(0.0..1.0) * _HEAT_FLUCT) + _RESISTANCE - _GRAVITY)
-            0.0,
+            VELOCITY * (BASE_HEAT / blob.coord.y) * ((rng.gen_range(0.0..HEAT_FLUCT)))
         );
-        let mut resultant_velocity = blob.velocity + vertical_velocity;
 
+        if !blob.falling && rng.gen_range(0.0..1.0) > (1.0 - FALLING_CHANCE) && blob.coord.y >= (2.0 * y / 3.0 * rng.gen_range(0.1..1.0)) {
+            blob.falling = true;
+        }
+        else if blob.falling && blob.coord.y <= (y / 5.0 * rng.gen_range(0.1..1.0)) {
+            blob.falling = false;
+        }
+
+
+        let mut resultant_velocity = blob.velocity + vertical_velocity;
         if (blob.coord.x + resultant_velocity.x) <= 0.0 || (blob.coord.x + resultant_velocity.x) >=x {
             blob.velocity.x *= -1.0;
             resultant_velocity.x *= -1.0;
         } 
-        if (blob.coord.y + resultant_velocity.y) <= 0.0 || (blob.coord.y + resultant_velocity.y) >= y {
+        if (blob.coord.y + resultant_velocity.y) <= 0.0 {
             blob.velocity.y *= -1.0;
             resultant_velocity.y *= -1.0;
         }
-        blob.coord +=  resultant_velocity;
+        if (blob.coord.y + resultant_velocity.y) >= y {
+            blob.velocity.y *= -0.1;
+            resultant_velocity.y *= -0.1;
+        }
+
+        if blob.falling {
+            blob.coord -= resultant_velocity;
+        } else {
+            blob.coord += resultant_velocity;
+        }
     }
     blobs
 }
