@@ -106,15 +106,17 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
             } 
             if value >= THRESHOLD {
                 if value >= 1.0 { value = 1.0; }
-                color = COLOR;
-                color = (color.0 * value, color.1 * value, color.2 * value);
-
+                out_grid[i][j] = Color::Rgb { 
+                    r: ((COLOR.0 * value) as u8), 
+                    g: ((COLOR.1 * value) as u8), 
+                    b: ((COLOR.2 * value) as u8)
+                };
             }
             // add fluid color by hue shifting 
             // scale color based on distance to bottom
-            let hsv = rgb_to_hsv(color);
-            let rgb = hsv_to_rgb((hsv.0 - (hsv.0 * linear_interpolation(i as f32, grid.len() as f32)), hsv.1, hsv.2));
-            out_grid[i][j] = Color::Rgb { r: (rgb.0 as u8), g: (rgb.1 as u8), b: (rgb.2 as u8) };
+            let hsv = rgb_to_hsv((out_grid[i][j].r, out_grid[i][j].g, out_grid[i][j].b));
+            let rgb = hsv_to_rgb((hsv.0 - (hsv.0 * linear_interpolation(j as f32, grid.len() as f32)), hsv.1, hsv.2));
+            out_grid[i][j] = 
         }
     }
     out_grid
@@ -202,12 +204,16 @@ fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (f32, f32, f32) {
 }
 
 fn linear_interpolation(j: f32, y: f32) -> f32 {
+    // Normalize j to the range [0, 1] based on the relationship with y
     let normalized_j = j / y;
+    
+    // Apply linear interpolation
     let result = if j == y {
         0.0
     } else if j == 0.0 {
         1.0
     } else {
+        // Linear interpolation formula
         (1.0 - normalized_j) * 0.0 + normalized_j * 1.0
     };
     
