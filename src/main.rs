@@ -98,7 +98,7 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
             let mut value: f32 = 0.0; 
-            let mut color: (f32, f32, f32) = (0.0,0.0,0.0);
+            let mut color: (f32, f32, f32);
             for blob in blobs {
                 value += (
                     (j as f32 - blob.coord.x).powf(2.0) + 
@@ -109,11 +109,12 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
                 if value >= 1.0 { value = 1.0; }
                 color = COLOR;
                 color = (color.0 * value, color.1 * value, color.2 * value);
-
+                let hsv = rgb_to_hsv(color);
+                let rgb = hsv_to_rgb((hsv.0 - (0.2 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32)), hsv.1, hsv.2));
+                out_grid[i][j] = Color::Rgb { r: (rgb.0 as u8), g: (rgb.1 as u8), b: (rgb.2 as u8) };
+            } else {
+                
             }
-            let hsv = rgb_to_hsv(color);
-            let rgb = hsv_to_rgb((hsv.0 - (0.2 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32)), hsv.1, hsv.2));
-            out_grid[i][j] = Color::Rgb { r: (rgb.0 as u8), g: (rgb.1 as u8), b: (rgb.2 as u8) };
         }
     }
     out_grid
