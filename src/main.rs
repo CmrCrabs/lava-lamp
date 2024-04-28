@@ -16,7 +16,7 @@ const DENSITY: f32 = 1.25;
 
 const VELOCITY: f32 = 1.5; // clamping breaks at velocities greater than 4.5
 const FLUCT: f32 = 0.2;
-const COLOR: (f32, f32, f32) = (214.0, 15.0, 205.0);
+const COLOR: (f32, f32, f32) = (200.0, 50.0, 200.0);
 
 type Grid = Vec<Vec<Color>>;
 
@@ -48,6 +48,7 @@ fn main() -> Result<()> {
         (x,y) = get_dimensions();
         blobs = transform(blobs, x, y);
         print!("{}{}", MoveTo(0,0), Hide);
+        //println!("high{}\nlow{}",linear_interpolation(1.0, 100.0), linear_interpolation(99.0,100.0));
         draw(&blobs, &x, &y);
 
         if poll(std::time::Duration::from_millis(FRAME_DELAY))? { 
@@ -110,10 +111,8 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
                 color = (color.0 * value, color.1 * value, color.2 * value);
 
             }
-            // add fluid color by hue shifting 
-            // scale color based on distance to bottom
             let hsv = rgb_to_hsv(color);
-            let rgb = hsv_to_rgb((hsv.0 - (hsv.0 * linear_interpolation(i as f32, grid.len() as f32)), hsv.1, hsv.2));
+            let rgb = hsv_to_rgb((hsv.0 - (0.2 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32)), hsv.1, hsv.2));
             out_grid[i][j] = Color::Rgb { r: (rgb.0 as u8), g: (rgb.1 as u8), b: (rgb.2 as u8) };
         }
     }
@@ -149,67 +148,13 @@ fn get_dimensions() -> (f32, f32) {
     (x as f32, y as f32)
 }
 
-fn rgb_to_hsl(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
-    let max = r.max(g.max(b));
-    let min = r.min(g.min(b));
-    let diff = max - min;
-
-    let h = if diff == 0.0 {
-        0.0
-    } else if max == r {
-        ((g - b) / diff) % 6.0
-    } else if max == g {
-        ((b - r) / diff) + 2.0
-    } else {
-        ((r - g) / diff) + 4.0
-    };
-
-    let l = (max + min) / 2.0;
-
-    let s = if diff == 0.0 {
-        0.0
-    } else {
-        diff / (1.0 - (2.0 * l - 1.0).abs())
-    };
-
-    (h * 60.0, s, l)
-}
-
-fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (f32, f32, f32) {
-    let c = (1.0 - (2.0 * l - 1.0).abs()) * s;
-    let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
-    let m = l - c / 2.0;
-
-    let (r1, g1, b1) = if h < 60.0 {
-        (c, x, 0.0)
-    } else if h < 120.0 {
-        (x, c, 0.0)
-    } else if h < 180.0 {
-        (0.0, c, x)
-    } else if h < 240.0 {
-        (0.0, x, c)
-    } else if h < 300.0 {
-        (x, 0.0, c)
-    } else {
-        (c, 0.0, x)
-    };
-
-    let r = r1 + m;
-    let g = g1 + m;
-    let b = b1 + m;
-
-    (r, g, b)
-}
-
 fn linear_interpolation(j: f32, y: f32) -> f32 {
+    if j == 0.0 { return 1.0 - 0.0000001 }
     let normalized_j = j / y;
     let result = if j == y {
         0.0
-    } else if j == 0.0 {
-        1.0
     } else {
         (1.0 - normalized_j) * 0.0 + normalized_j * 1.0
     };
-    
-    result
+    1.0 - result
 }
