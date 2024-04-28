@@ -132,7 +132,7 @@ fn transform(mut blobs: Vec<Blob>,x: f32, y: f32, params: &Params) -> Vec<Blob> 
     for blob in &mut blobs {
         let mut rng = rand::thread_rng();
         let mut vertical_velocity: Vec2 = Vec2::new(0.0,params.velocity * 1.2 * linear_interpolation(blob.coord.y, y));
-        if !blob.falling && rng.gen_range(0.0..1.0) > 0.98 && blob.coord.y > (8.0 * y / 10.0) {
+        if !blob.falling && rng.gen_range(0.0..1.0) > 0.98 && blob.coord.y > (7.0 * y / 10.0) {
             blob.falling = true;
         }
         if blob.falling {
