@@ -74,8 +74,7 @@ fn main() -> Result<()> {
 }
 
 fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32, params: &Params) {
-    let mut grid: Grid = vec![vec![Color::Reset; *x as usize]; *y as usize];
-    grid = metaballise(grid, blobs, params);
+    let grid = metaballise(blobs, x, y, params);
 
     for row in grid.into_iter().rev() {
         for cell in row {
@@ -91,7 +90,7 @@ fn gen_blobs(x: &f32, y: &f32, params: &Params) -> Vec<Blob> {
     let mut blobs: Vec<Blob> = vec![];
     for _ in 0..initial_blobs {
         blobs.push( Blob {
-            coord: Vec2::new(rng.gen_range(0.0..1.0) * *x as f32,rng.gen_range(0.0..1.0) * *y as f32),
+            coord: Vec2::new(rng.gen_range(0.0..1.0) * *x,rng.gen_range(0.0..1.0) * *y),
             velocity: Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.3..0.3)) * params.velocity,
             falling: false,
         });
@@ -99,13 +98,16 @@ fn gen_blobs(x: &f32, y: &f32, params: &Params) -> Vec<Blob> {
     blobs
 }
 
-fn metaballise(grid: Grid, blobs: &Vec<Blob>, params: &Params) -> Grid {
-    let mut out_grid = grid.clone();
+fn metaballise(blobs: &Vec<Blob>,x: &f32, y: &f32, params: &Params) -> Grid {
+    let mut grid: Grid = vec![vec![Color::Reset; *x as usize]; *y as usize];
 
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
             let mut value: f32 = 0.0; 
-            let mut color: (f32, f32, f32) = params.color;
+            let color: (f32, f32, f32) = params.color;
+            let hsv = rgb_to_hsv(color);
+            let mut rgb = hsv_to_rgb((hsv.0 - (0.2 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
+
             for blob in blobs {
                 value += (
                     (j as f32 - blob.coord.x).powf(2.0) + 
@@ -114,18 +116,14 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>, params: &Params) -> Grid {
             } 
             if value >= THRESHOLD {
                 if value >= 1.0 { value = 1.0; }
-                color = (color.0 * value, color.1 * value, color.2 * value);
-                let hsv = rgb_to_hsv(color);
-                let rgb = hsv_to_rgb((hsv.0 - (0.2 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
-                out_grid[i][j] = Color::Rgb { r: (rgb.0 as u8), g: (rgb.1 as u8), b: (rgb.2 as u8) };
+                rgb = (rgb.0 * value, rgb.1 * value, rgb.2 * value);
+                grid[i][j] = Color::Rgb { r: (rgb.0 as u8), g: (rgb.1 as u8), b: (rgb.2 as u8) };
             } else if params.background_enable {
-                let hsv = rgb_to_hsv(color);
-                let rgb = hsv_to_rgb((hsv.0 - (0.2 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32 + 0.9)), hsv.1, hsv.2));
-                out_grid[i][j] = Color::Rgb { r: ((0.2 * (255.0 - rgb.0)) as u8), g: ((0.2 * (255.0 - rgb.1)) as u8), b: ((0.2 * (255.0 - rgb.2)) as u8) };
+                grid[i][j] = Color::Rgb { r: ((0.2 * (255.0 - rgb.0)) as u8), g: ((0.2 * (255.0 - rgb.1)) as u8), b: ((0.2 * (255.0 - rgb.2)) as u8) };
             }
         }
     }
-    out_grid
+    grid
 }
 
 fn transform(mut blobs: Vec<Blob>,x: f32, y: f32, params: &Params) -> Vec<Blob> {
