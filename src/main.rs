@@ -6,34 +6,34 @@ use crossterm::{
     execute,
 };
 use std::io::{stdout, Result};
-
 use rand::prelude::*;
 use glam::Vec2;
 
 const FRAME_DELAY: u64 = 5;
-const THRESHOLD: f32 = 0.5;
-const DENSITY: f32 = 1.05;
+const THRESHOLD: f32 = 0.8;
+const DENSITY: f32 = 1.25;
 
-const VELOCITY: f32 = 0.2; // clamping breaks at velocities greater than 4.5
-const BASE_HEAT: f32 = 1.0;
-const FALLING_CHANCE: f32 = 0.02;
-const HEAT_FLUCT: f32 = 1.0;
+const VELOCITY: f32 = 1.5; // clamping breaks at velocities greater than 4.5
+const FLUCT: f32 = 0.2;
+const COLOR: (f32, f32, f32) = (214.0, 15.0, 205.0);
 
-type Grid = Vec<Vec<bool>>;
+type Grid = Vec<Vec<Color>>;
 
 #[derive(Default)]
 struct Blob {
     coord: Vec2,
     velocity: Vec2,
-    falling: bool,
 }
 
 // TODO: smooth the transition from falling to not falling
 // TOOD: make it so can adjust settle height
 // TODO: make the consts input parameters
-// TODO: colors per blob!?
+// TODO: colors per blob!? // do the thing in temptmemtepm
 // TODO: vary threshold by velocity to change it
 // TODO: Blob shading?
+//
+// TODO: make color scale based on distance to bottom // hueshifted slightly to be warmer
+// TODO: make background a hueshifted version of color to be darker and complementary?
 
 fn main() -> Result<()> {
     let (mut x,mut y) = get_dimensions();
@@ -64,26 +64,25 @@ fn main() -> Result<()> {
 }
 
 fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32) {
-    let mut grid: Grid = vec![vec![false; *x as usize]; *y as usize];
+    let mut grid: Grid = vec![vec![Color::Reset; *x as usize]; *y as usize];
     grid = metaballise(grid, blobs);
 
     for row in grid.into_iter().rev() {
         for cell in row {
-            print!("{} ", SetBackgroundColor(if cell {Color::White} else {Color::Reset}));
+            print!("{} ", SetBackgroundColor(cell));
         }
     }
 }
 
 fn gen_blobs(x: &f32, y: &f32) -> Vec<Blob> {
-    let initial_blobs: u32 = (((x * y) / DENSITY).powf(1.0 / 3.0)) as u32;
+    let initial_blobs: u32 = (((x * y) / DENSITY).powf(1.2 / 3.0)) as u32;
 
     let mut rng = rand::thread_rng();
     let mut blobs: Vec<Blob> = vec![];
     for _ in 0..initial_blobs {
         blobs.push( Blob {
-            coord: Vec2::new(rng.gen::<f32>() * *x as f32,rng.gen::<f32>() * *y as f32),
-            velocity: Vec2::new(rng.gen_range(-0.7..0.7), rng.gen_range(-0.3..0.3)) * VELOCITY,
-            falling: false,
+            coord: Vec2::new(rng.gen_range(0.0..1.0) * *x as f32,rng.gen_range(0.0..1.0) * *y as f32),
+            velocity: Vec2::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.3..0.3)) * VELOCITY,
         });
     }
     blobs
@@ -101,8 +100,15 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
                 ).sqrt().recip();
             } 
             if value >= THRESHOLD {
-                out_grid[i][j] = true;
+                if value >= 1.0 { value = 1.0; }
+                out_grid[i][j] = Color::Rgb { 
+                    r: ((COLOR.0 * value) as u8), 
+                    g: ((COLOR.1 * value) as u8), 
+                    b: ((COLOR.2 * value) as u8)
+                };
             }
+            // add fluid color by hue shifting 
+            // scale color based on distance to bottom
         }
     }
     out_grid
@@ -111,18 +117,7 @@ fn metaballise(grid: Grid, blobs: &Vec<Blob>) -> Grid {
 fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
     for blob in &mut blobs {
         let mut rng = rand::thread_rng();
-        let vertical_velocity = Vec2::new(
-            0.0,
-            VELOCITY * (BASE_HEAT / blob.coord.y) * ((rng.gen_range(0.0..HEAT_FLUCT)))
-        );
-
-        if !blob.falling && rng.gen_range(0.0..1.0) > (1.0 - FALLING_CHANCE) && blob.coord.y >= (2.0 * y / 3.0 * rng.gen_range(0.1..1.0)) {
-            blob.falling = true;
-        }
-        else if blob.falling && blob.coord.y <= (y / 5.0 * rng.gen_range(0.1..1.0)) {
-            blob.falling = false;
-        }
-
+        let vertical_velocity: Vec2 = Vec2::new(0.0,0.0);
 
         let mut resultant_velocity = blob.velocity + vertical_velocity;
         if (blob.coord.x + resultant_velocity.x) <= 0.0 || (blob.coord.x + resultant_velocity.x) >=x {
@@ -134,15 +129,11 @@ fn transform(mut blobs: Vec<Blob>,x: f32, y: f32) -> Vec<Blob> {
             resultant_velocity.y *= -1.0;
         }
         if (blob.coord.y + resultant_velocity.y) >= y {
-            blob.velocity.y *= -0.1;
-            resultant_velocity.y *= -0.1;
+            blob.velocity.y *= -1.0;
+            resultant_velocity.y *= -1.0;
         }
 
-        if blob.falling {
-            blob.coord -= resultant_velocity;
-        } else {
-            blob.coord += resultant_velocity;
-        }
+        blob.coord += resultant_velocity * rng.gen_range(1.0 - FLUCT..1.0 + FLUCT);
     }
     blobs
 }
@@ -151,3 +142,10 @@ fn get_dimensions() -> (f32, f32) {
     let (x, y) = size().unwrap();
     (x as f32, y as f32)
 }
+
+//i have a blob
+//blob has upwards velocity such that the further you get from line y = 0 the higher the velocity is
+//blob has random chance of falling
+//when blob is falling its vertical velocity -= k
+//such that it reaches a point just above the bottom where 1/y bigger than k and it starts rising
+//and then once it starts rising again k is no longer added and cyrcle repeats
