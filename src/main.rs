@@ -64,17 +64,11 @@ fn main() -> Result<()> {
         if poll(std::time::Duration::from_millis(FRAME_DELAY))? { 
             if let Event::Key(key) = read()? {
                 if key.kind == KeyEventKind::Press
-                    && key.code == KeyCode::Char('q')
-                {
-                    break;
-                }
-                if key.kind == KeyEventKind::Press
-                    && key.code == KeyCode::Char('c')
-                {
-                    break;
-                }
-                if key.kind == KeyEventKind::Press
-                    && key.code == KeyCode::Esc
+                    && (
+                        key.code == KeyCode::Char('q')
+                        || key.code == KeyCode::Char('c')
+                        || key.code == KeyCode::Esc
+                        )
                 {
                     break;
                 }
