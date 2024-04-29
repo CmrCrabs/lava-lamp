@@ -33,16 +33,16 @@ struct Params {
 impl Default for Params {
     fn default() -> Self {
         Params {
-            velocity: 5.5,
+            velocity: 0.5,
             fluct: 0.2,
             color: (255.0,255.0,255.0),
             background_enable: true,
-            epilepsy: true,
+            epilepsy: false,
         }
     }
 }
 
-// TODO: make the consts input parameters
+// TODO: make the params input parameters
 
 fn main() -> Result<()> {
     let mut params: Params = Default::default();
@@ -59,12 +59,22 @@ fn main() -> Result<()> {
         blobs = transform(blobs, x, y, &params);
         print!("{}{}", MoveTo(0,0), Hide);
         draw(&blobs, &x, &y, &params);
-        if i % 6 == 0 && params.epilepsy { params.color = gen_color(); }
+        if params.epilepsy && i % 6 == 0 { params.color = gen_color(); }
 
         if poll(std::time::Duration::from_millis(FRAME_DELAY))? { 
             if let Event::Key(key) = read()? {
                 if key.kind == KeyEventKind::Press
                     && key.code == KeyCode::Char('q')
+                {
+                    break;
+                }
+                if key.kind == KeyEventKind::Press
+                    && key.code == KeyCode::Char('c')
+                {
+                    break;
+                }
+                if key.kind == KeyEventKind::Press
+                    && key.code == KeyCode::Esc
                 {
                     break;
                 }
@@ -125,12 +135,12 @@ fn metaballise(blobs: &Vec<Blob>,x: &f32, y: &f32, params: &Params) -> Grid {
                 if value >= 1.0 { value = 1.0; }
                 let mut hsv = rgb_to_hsv(color);
                 hsv = (hsv.0 - (0.28 * value), hsv.1 * value, hsv.2 * value);
-                let rgb = hsv_to_rgb((hsv.0 - (0.2 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
+                let rgb = hsv_to_rgb((hsv.0 - (0.1 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
                 grid[i][j] = Color::Rgb { r: (rgb.0 as u8), g: (rgb.1 as u8), b: (rgb.2 as u8) };
             } else if params.background_enable {
                 let mut rgb = (color.0 * value, color.1 * value, color.2 * value);
                 let hsv = rgb_to_hsv(rgb);
-                rgb = hsv_to_rgb((hsv.0 - (0.5 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
+                rgb = hsv_to_rgb((hsv.0 - (0.3 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
                 grid[i][j] = Color::Rgb { r: ((0.2 * (255.0 - rgb.0)) as u8), g: ((0.2 * (255.0 - rgb.1)) as u8), b: ((0.2 * (255.0 - rgb.2)) as u8) };
             }
         }
