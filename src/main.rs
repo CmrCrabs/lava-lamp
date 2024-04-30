@@ -5,12 +5,12 @@ use crossterm::{
     style::{SetBackgroundColor, Color},
     execute,
 };
-use std::io::{stdout, Result};
+use std::{f32::consts::E, io::{stdout, Result}};
 use rand::prelude::*;
 use glam::Vec2;
 use rgb_hsv::{self, hsv_to_rgb, rgb_to_hsv};
 
-const FRAME_DELAY: u64 = 5;
+const FRAME_DELAY: u64 = 0;
 const THRESHOLD: f32 = 0.8;
 const DENSITY: f32 = 1.35;
 type Grid = Vec<Vec<Color>>;
@@ -36,13 +36,16 @@ impl Default for Params {
             velocity: 0.5,
             fluct: 0.2,
             color: (255.0,255.0,255.0),
-            background_enable: true,
+            background_enable: false,
             epilepsy: false,
         }
     }
 }
 
 // TODO: make the params input parameters
+// TOOD: mutex for rng
+// TODO: implement sigmoid function to better curve centres
+// TODO: optimise metaballise function using enumarables and other similars
 
 fn main() -> Result<()> {
     let mut params: Params = Default::default();
@@ -89,9 +92,9 @@ fn main() -> Result<()> {
 fn draw(blobs: &Vec<Blob>, x: &f32, y: &f32, params: &Params) {
     let grid = metaballise(blobs, x, y, params);
 
-    for row in grid.into_iter().rev() {
-        for cell in row {
-            print!("{} ", SetBackgroundColor(cell));
+    for y in grid.into_iter().rev() {
+        for x in y {
+            print!("{} ", SetBackgroundColor(x));
         }
     }
 }
@@ -126,16 +129,16 @@ fn metaballise(blobs: &Vec<Blob>,x: &f32, y: &f32, params: &Params) -> Grid {
                 ).sqrt().recip();
             } 
             if value >= THRESHOLD {
-                if value >= 1.0 { value = 1.0; }
+                if value >= 0.9 { value = 0.9; }
                 let mut hsv = rgb_to_hsv(color);
-                hsv = (hsv.0 - (0.28 * value), hsv.1 * value, hsv.2 * value);
-                let rgb = hsv_to_rgb((hsv.0 - (0.1 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
+                hsv = (hsv.0 - (0.02 * value), hsv.1 * value, hsv.2 * value);
+                let rgb = hsv_to_rgb((hsv.0 - (0.3 * hsv.0 * lerp(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
                 grid[i][j] = Color::Rgb { r: (rgb.0 as u8), g: (rgb.1 as u8), b: (rgb.2 as u8) };
             } else if params.background_enable {
                 let mut rgb = (color.0 * value, color.1 * value, color.2 * value);
                 let hsv = rgb_to_hsv(rgb);
-                rgb = hsv_to_rgb((hsv.0 - (0.3 * hsv.0 * linear_interpolation(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
-                grid[i][j] = Color::Rgb { r: ((0.2 * (255.0 - rgb.0)) as u8), g: ((0.2 * (255.0 - rgb.1)) as u8), b: ((0.2 * (255.0 - rgb.2)) as u8) };
+                rgb = hsv_to_rgb((hsv.0 - (0.3 * hsv.0 * lerp(i as f32, grid.len() as f32 + 0.5)), hsv.1, hsv.2));
+                grid[i][j] = Color::Rgb { r: ((0.3 * (255.0 - rgb.0)) as u8), g: ((0.2 * (255.0 - rgb.1)) as u8), b: ((0.2 * (255.0 - rgb.2)) as u8) };
             }
         }
     }
@@ -145,12 +148,13 @@ fn metaballise(blobs: &Vec<Blob>,x: &f32, y: &f32, params: &Params) -> Grid {
 fn transform(mut blobs: Vec<Blob>,x: f32, y: f32, params: &Params) -> Vec<Blob> {
     for blob in &mut blobs {
         let mut rng = rand::thread_rng();
-        let mut vertical_velocity: Vec2 = Vec2::new(0.0,params.velocity * 1.2 * linear_interpolation(blob.coord.y, y));
+        let mut vertical_velocity: Vec2 = Vec2::new(0.0,params.velocity * 1.2 * lerp(blob.coord.y, y));
+        if blob.falling {
+            vertical_velocity.y -= params.velocity * (1.2 - lerp(blob.coord.y, y)); 
+        }
         if !blob.falling && rng.gen_range(0.0..1.0) > 0.98 && blob.coord.y > (7.0 * y / 10.0) {
             blob.falling = true;
-        }
-        if blob.falling {
-            vertical_velocity.y -= params.velocity * (1.2 - linear_interpolation(blob.coord.y, y)); 
+            vertical_velocity.y -= params.velocity * (0.6 - lerp(blob.coord.y, y)); 
         }
 
         let mut resultant_velocity = blob.velocity + vertical_velocity;
@@ -178,7 +182,7 @@ fn get_dimensions() -> (f32, f32) {
     (x as f32, y as f32)
 }
 
-fn linear_interpolation(j: f32, y: f32) -> f32 {
+fn lerp(j: f32, y: f32) -> f32 {
     if j == 0.0 { return 1.0 - 0.0000001 }
     let normalized_j = j / y;
     let result = if j == y {
@@ -202,4 +206,8 @@ fn gen_color() -> (f32, f32, f32) {
     }
 
     (rgb[0],rgb[1],rgb[2])
+}
+
+fn sigmoid(x: f32) -> f32 {
+    1.0 / (1.0 + E.powf(-x))
 }
