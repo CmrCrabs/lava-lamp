@@ -33,7 +33,7 @@ struct Params {
 impl Default for Params {
     fn default() -> Self {
         Params {
-            velocity: 0.5,
+            velocity: 0.3,
             fluct: 0.2,
             color: (255.0,255.0,255.0),
             background_enable: false,
